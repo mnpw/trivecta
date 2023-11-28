@@ -1,55 +1,78 @@
 /// Notes:
 /// - https://stackoverflow.com/questions/40776020/is-there-any-way-to-restrict-a-generic-type-to-one-of-several-types
-/// - a new TriVecta shall
+/// - a new TriVec shall
 ///     - hold no memory (neither in stack nor in memory)
 ///     - its length of the data structure should be zero
 ///
 fn main() {
-    let len = TriVecta::<i8, 20>::inline_capacity();
-    assert_eq!(len, 20);
+    // let v: TriVec<String> = TriVec::new(20, 1000);
+    // assert_eq!(v.capacity(), 0);
 }
 
-struct TriVecta<T, const N: usize> {
-    len: usize,
-    data: TriVectaData<T, N>,
+enum TriVecState {
+    Inline,
+    Heap,
+    Disk,
 }
 
-/// Note: Use of constant generics
-/// TriVecta is parameterized with N and N is a constant generic
-/// This allows us to construct [T; N]
-impl<T: Copy + Default, const N: usize> TriVecta<T, N> {
-    fn new() -> Self {
+struct TriVec<T, const N: usize> {
+    inline_capacity: usize,
+    heap_capacity: usize,
+    state: TriVecState,
+    data: TriVecData<T, N>,
+}
+
+impl<T, const N: usize> TriVec<T, N> {
+    fn new(heap_capacity: usize) -> Self {
         Self {
-            len: N,
-            data: TriVectaData::Inline([T::default(); N]),
+            inline_capacity: 100,
+            heap_capacity: 10_000,
+            state: TriVecState::Inline,
+            data: TriVecData::new(),
         }
     }
 
-    fn inline_capacity() -> usize {
-        N
+    pub fn capacity(&self) -> usize {
+        match self.state {
+            TriVecState::Inline => self.inline_capacity,
+            TriVecState::Heap => self.heap_capacity,
+            // TODO: Capacity in disk state can be infinite
+            TriVecState::Disk => usize::MAX,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
     }
 
     fn push(&mut self, item: T) {
-        match self.data {
-            TriVectaData::Inline(mut inline) => {
-                let ptr = inline.as_mut_ptr();
-            }
-            _ => todo!(),
-        }
+        // match self.data {
+        //     TriVecData::Inline(mut inline) => {
+        //         let ptr = inline.as_mut_ptr();
+        //     }
+        //     _ => todo!(),
+        // }
     }
 }
 
 /// TODO: Consider a Union instead of Enum
-enum TriVectaData<T, const N: usize> {
-    Inline([T; N]),
+enum TriVecData<T, const N: usize> {
+    // TODO: We can't initiate Inline variant using the
+    // [T; N] syntax because that requires T to be Copy
+    //
+    // Inline(([T; N])),
+    Inline(()),
     Heap(Vec<T>),
     Disk(()),
 }
 
-impl<T, const N: usize> TriVectaData<T, N> {
-    fn len(self) -> usize {
+impl<T, const N: usize> TriVecData<T, N> {
+    fn new() -> Self {
+        Self::Inline(())
+    }
+
+    fn len(&self) -> usize {
         match self {
-            TriVectaData::Inline(d) => d.len(),
             _ => todo!(),
         }
     }
